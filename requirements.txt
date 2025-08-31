@@ -1,0 +1,8 @@
+flask
+flask-cors
+requests
+cohere
+bleach
+rank-bm25
+python-slugify
+werkzeug
