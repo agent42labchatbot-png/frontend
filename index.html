@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Agent42labs — Ask</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg: #f9fcf7; --text: #556171; --headline: #5a6474;
+      --pill-bg: #ffffff; --shadow: rgba(16, 24, 40, .06); --shadow-2: rgba(16, 24, 40, .10);
+      --glow: rgba(34, 197, 94, .14); --accent: #22c55e; --accent-deep: #16a34a;
+      --icon: #8391a2; --icon-active: #22c55e; --placeholder: #9aa5b1;
+    }
+    html,body{height:100%}
+    body{
+      margin:0; min-height:100%;
+      background: radial-gradient(60% 30% at 50% 0%, rgba(34,197,94,.05), transparent 60%), var(--bg);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      color: var(--text); display:grid; place-items:center;
+    }
+    .wrap{ width: min(920px, 92vw); text-align:center; }
+    h1{ font-weight: 700; font-size: clamp(20px, 3.6vw, 28px); color: var(--headline); letter-spacing: -0.01em; margin: 0 0 28px; }
+
+    .ask{
+      display:flex; align-items:center; gap: 14px; background: var(--pill-bg); border-radius: 9999px;
+      padding: 16px 16px 16px 18px;
+      box-shadow: 0 10px 24px var(--shadow), 0 2px 6px var(--shadow-2), 0 0 0 0 var(--glow);
+      transition: box-shadow .25s ease, transform .08s ease;
+    }
+    .ask:focus-within{
+      box-shadow: 0 16px 40px var(--shadow), 0 4px 10px var(--shadow-2), 0 0 0 10px var(--glow);
+    }
+    .left, .right{ display:flex; align-items:center; gap:12px; flex: 0 0 auto; }
+    .center{ flex:1 1 auto; display:flex; align-items:center; }
+    .icon-btn{ width: 28px; height: 28px; border-radius: 50%; display:grid; place-items:center; color: var(--icon); cursor: pointer; transition: background .15s ease, color .15s ease, transform .08s ease; }
+    .icon-btn:hover{ background: #f2f5f7; } .icon-btn:active{ transform: scale(.96); } .icon-btn.active{ color: var(--icon-active); background: rgba(34,197,94,.08); }
+    input[type="text"]{ width:100%; font-size: clamp(15px, 2.5vw, 18px); border: none; outline: none; background: transparent; color: #2d3a49; }
+    input::placeholder{ color: var(--placeholder); }
+    .send{ width:48px; height:48px; border-radius: 9999px; border: none; cursor: pointer; display:grid; place-items:center; background: linear-gradient(180deg, var(--accent), var(--accent-deep)); color:#fff; box-shadow: 0 12px 24px rgba(34,197,94,.35), 0 4px 10px rgba(34,197,94,.25); transition: transform .08s ease, box-shadow .2s ease, filter .2s ease; }
+    .send:hover{ filter: saturate(1.05) brightness(1.05); } .send:active{ transform: translateY(1px) scale(.98); }
+    .tip{ position:absolute; top:-30px; left:50%; translate:-50% 0; background:#111827; color:#fff; font-size:12px; padding:4px 8px; border-radius:6px; opacity:0; pointer-events:none; transition:opacity .15s ease; white-space:nowrap; }
+    .tip::after{ content:""; position:absolute; left:50%; translate:-50% 0; top:100%; border:6px solid transparent; border-top-color:#111827; }
+    .icon-wrap{ position:relative; } .icon-wrap:hover .tip{ opacity: 1; }
+
+    .curtain{ position: fixed; inset: 0; z-index: 50; background: radial-gradient(1000px 380px at 50% -10%, rgba(34,197,94,.14), transparent 60%), rgba(15,23,42,.10); backdrop-filter: blur(3px); display:none; align-items:center; justify-content:center; }
+    .curtain.show{ display:flex; animation: fade .25s ease; }
+    @keyframes fade{ from{ opacity:0 } to{ opacity:1 } }
+    .panel{ background: #fff; color:#0f172a; width: min(460px, 86vw); border-radius: 16px; border: 1px solid rgba(15,23,42,.08); box-shadow: 0 20px 50px rgba(15,23,42,.18); padding: 18px; text-align:center; }
+    .spinner{ width:52px; height:52px; border-radius:50%; border: 4px solid rgba(2,6,23,.12); border-top-color: var(--accent); margin: 2px auto 10px; animation: spin 1s linear infinite; }
+    @keyframes spin{ to{ transform: rotate(360deg); } }
+    .step{ margin: 4px 0 8px; color:#475569; font-weight:600; }
+    .bar{ height:8px; background:#eef2f7; border-radius: 9999px; overflow:hidden; }
+    .bar > span{ display:block; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-deep)); border-radius: inherit; transition: width .5s ease; }
+    .actions-row{ display:flex; justify-content:center; gap:10px; margin-top:10px; }
+    .small-btn{ padding:8px 12px; border-radius:9999px; border:1px solid rgba(15,23,42,.12); background:#f8fafc; cursor:pointer; font-weight:600; }
+    .small-btn.primary{ background: var(--accent); color:#fff; border-color: transparent; }
+
+    @media (max-width:560px){ .left .hide-sm, .right .hide-sm{ display:none; } .ask{ padding-right: 10px; } .send{ width:44px; height:44px; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Your ideas, our solutions — what’s your question?</h1>
+
+    <form id="askForm" class="ask" autocomplete="off">
+      <div class="left">
+        <div class="icon-wrap">
+          <div class="icon-btn" id="newBtn" aria-label="New question" title="New question">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </div>
+          <span class="tip">New</span>
+        </div>
+      </div>
+
+      <div class="center">
+        <input id="q" type="text" placeholder="How can Agent42labs help you today?" aria-label="Your question" required />
+      </div>
+
+      <div class="right">
+        <div class="icon-wrap">
+          <div class="icon-btn" id="citeBtn" aria-label="Toggle sources" title="Toggle sources">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="2"></circle><circle cx="12" cy="6" r="2"></circle><circle cx="18" cy="12" r="2"></circle><path d="M8 12h4M14 8l-2 2M14 10l-2-2M14 12h4"></path></svg>
+          </div>
+          <span class="tip">Include sources</span>
+        </div>
+
+        <button class="send" id="sendBtn" type="submit" aria-label="Generate">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13"></path><path d="M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+        </button>
+      </div>
+    </form>
+  </main>
+
+  <!-- Curtain with staged steps -->
+  <div id="curtain" class="curtain" role="dialog" aria-live="polite" aria-label="Composing your article">
+    <div class="panel">
+      <div class="spinner"></div>
+      <p id="stepText" class="step">Finding sources…</p>
+      <div class="bar"><span id="barFill"></span></div>
+      <div class="actions-row">
+        <button id="cancelBtn" class="small-btn">Cancel</button>
+        <button id="openBtn" class="small-btn primary" style="display:none;">Open page</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ====== CONFIG ======
+    const COMPOSE_URL = "https://Agent42labsbot.pythonanywhere.com"; // change to your backend
+    const API_KEY = ""; // optional: set if backend requires X-Backend-Api-Key
+
+    // ====== Elements ======
+    const form = document.getElementById('askForm');
+    const input = document.getElementById('q');
+    const sendBtn = document.getElementById('sendBtn');
+    const newBtn  = document.getElementById('newBtn');
+    const citeBtn = document.getElementById('citeBtn');
+    const curtain = document.getElementById('curtain');
+    const stepText = document.getElementById('stepText');
+    const barFill  = document.getElementById('barFill');
+    const cancelBtn= document.getElementById('cancelBtn');
+    const openBtn  = document.getElementById('openBtn');
+
+    // Toggles
+    let includeCitations = true;
+    citeBtn.classList.add('active');
+    citeBtn.addEventListener('click', () => {
+      includeCitations = !includeCitations;
+      citeBtn.classList.toggle('active', includeCitations);
+    });
+    newBtn.addEventListener('click', () => { input.value = ""; input.focus(); });
+
+    // Staged loading text
+    const steps = ["🔎 Searching for relevant sources","📈 Ranking most useful info", "✍️ Crafting your article outline","✨ Generating your customized page… please wait patiently…"];
+    let stepTimer = null, stepIdx = 0, progress = 0;
+
+    function startLoadingUI() {
+      curtain.classList.add('show'); openBtn.style.display = "none";
+      stepIdx = 0; progress = 6;
+      stepText.textContent = steps[0]; barFill.style.width = progress + "%";
+      stepTimer = setInterval(() => {
+        stepIdx = (stepIdx + 1) % steps.length;
+        stepText.textContent = steps[stepIdx];
+        progress = Math.min(progress + Math.floor(94 / steps.length), 96);
+        barFill.style.width = progress + "%";
+      }, 1100);
+    }
+    function stopLoadingUI(doneOk = true) {
+      if (stepTimer) { clearInterval(stepTimer); stepTimer = null; }
+      if (doneOk) { barFill.style.width = "100%"; }
+      setTimeout(() => { curtain.classList.remove('show'); barFill.style.width = "0%"; }, doneOk ? 350 : 0);
+    }
+
+    let controller = null;
+    cancelBtn.addEventListener('click', () => {
+      if (controller) controller.abort();
+      stopLoadingUI(false);
+    });
+
+    async function compose(question) {
+      controller = new AbortController();
+      startLoadingUI(); sendBtn.disabled = true;
+      try {
+        const res = await fetch(COMPOSE_URL, {
+          method: 'POST',
+          headers: Object.assign({'Content-Type': 'application/json'}, API_KEY ? {'X-Backend-Api-Key': API_KEY} : {}),
+          body: JSON.stringify({ question, layout: 'guide', include_citations: includeCitations, brand_class: 'a42-article', primary: '#22c55e' }),
+          signal: controller.signal
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const url = data.page_url;
+        const w = window.open(url, '_blank', 'noopener');
+        if (!w) {
+          // popup blocked: show open button
+          openBtn.style.display = "inline-block";
+          openBtn.onclick = () => { window.location.href = url; };
+          stepText.textContent = "Ready — open the page";
+          barFill.style.width = "100%";
+          return; // keep curtain until user clicks
+        }
+        stopLoadingUI(true);
+      } catch (err) {
+        if (err.name !== "AbortError") alert('Something went wrong. Please try again.\n' + err);
+        stopLoadingUI(false);
+      } finally {
+        sendBtn.disabled = false;
+        controller = null;
+      }
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const q = input.value.trim();
+      if (!q) return input.focus();
+      compose(q);
+    });
+
+    input.focus();
+  </script>
+</body>
+</html>
